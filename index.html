@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Training Beeps</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    label {
+      display: inline-block;
+      width: 260px;
+      margin-bottom: 10px;
+    }
+    input {
+      margin-bottom: 10px;
+    }
+    .error {
+      color: red;
+      margin-top: 10px;
+    }
+    button {
+      margin-top: 10px;
+      margin-right: 10px;
+      padding: 5px 10px;
+    }
+    .slider-group {
+      margin-bottom: 15px;
+    }
+    fieldset {
+      margin-top: 20px;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Training Timer</h1>
+  <p>Configure your training timer:</p>
+  
+  <!-- Timer configuration -->
+  <div class="slider-group">
+    <label for="shots">Number of Shots (1–10):</label>
+    <input type="number" id="shots" value="6" min="1" max="10">
+  </div>
+  <div class="slider-group">
+    <label for="timeBetween">Time Between Shots (0.1–4 sec):</label>
+    <input type="number" id="timeBetween" value="0.6" step="0.05" min="0.1" max="4">
+  </div>
+  <div class="slider-group">
+    <label for="firstShot">First Shot Time (0.1–4 sec):</label>
+    <input type="number" id="firstShot" value="1.5" step="0.05" min="0.1" max="4">
+  </div>
+  
+  <!-- Beep tone settings for normal beeps -->
+  <fieldset>
+    <legend>Normal Beep Tone Settings</legend>
+    <div class="slider-group">
+      <label for="normalFrequency">Normal Beep Frequency (Hz):</label>
+      <input type="range" id="normalFrequency" min="200" max="2000" value="1000" step="10"
+             oninput="document.getElementById('normalFreqVal').textContent = this.value">
+      <span id="normalFreqVal">1000</span>
+    </div>
+    <div class="slider-group">
+      <label for="normalLength">Normal Beep Length (sec):</label>
+      <input type="range" id="normalLength" min="0.1" max="1.0" value="0.15" step="0.01"
+             oninput="document.getElementById('normalLengthVal').textContent = this.value">
+      <span id="normalLengthVal">0.15</span>
+    </div>
+  </fieldset>
+  
+  <!-- Beep tone settings for the first (distinct) beep -->
+  <fieldset>
+    <legend>First Beep Tone Settings</legend>
+    <div class="slider-group">
+      <label for="firstFrequency">First Beep Frequency (Hz):</label>
+      <input type="range" id="firstFrequency" min="200" max="2000" value="800" step="10"
+             oninput="document.getElementById('firstFreqVal').textContent = this.value">
+      <span id="firstFreqVal">800</span>
+    </div>
+    <div class="slider-group">
+      <label for="firstLength">First Beep Length (sec):</label>
+      <input type="range" id="firstLength" min="0.1" max="2.0" value="0.30" step="0.01"
+             oninput="document.getElementById('firstLengthVal').textContent = this.value">
+      <span id="firstLengthVal">0.30</span>
+    </div>
+  </fieldset>
+  
+  <div>
+    <button id="startBtn">Shooter Ready! (Space)</button>
+    <button id="closeBtn">Close</button>
+  </div>
+  
+  <div id="error" class="error"></div>
+  
+  <script>
+    // A helper function to sleep for a given number of milliseconds.
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    
+    // Create a single AudioContext for playing tones.
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    // Global flag to ensure one beep sequence at a time.
+    let isRunning = false;
+    
+    // Play the normal beep tone using the slider values.
+    function playBeep() {
+      const freq = parseFloat(document.getElementById("normalFrequency").value);
+      const length = parseFloat(document.getElementById("normalLength").value);
+      
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      oscillator.frequency.value = freq;
+      oscillator.type = "sine";
+      
+      gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + length);
+    }
+    
+    // Play the first beep tone (distinct) using its own slider values.
+    function playFirstBeep() {
+      const freq = parseFloat(document.getElementById("firstFrequency").value);
+      const length = parseFloat(document.getElementById("firstLength").value);
+      
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      oscillator.frequency.value = freq;
+      oscillator.type = "sine";
+      
+      gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + length);
+    }
+    
+    // The main function that sequences the beep sounds.
+    async function startBeeps() {
+      const errorDiv = document.getElementById('error');
+      errorDiv.textContent = "";
+      
+      // Prevent starting if a sequence is already running.
+      if (isRunning) return;
+      
+      // Retrieve and validate input values.
+      const shots = parseInt(document.getElementById('shots').value);
+      const timeBetween = parseFloat(document.getElementById('timeBetween').value);
+      const firstShotTime = parseFloat(document.getElementById('firstShot').value);
+      
+      if (
+        isNaN(shots) || shots < 1 || shots > 10 ||
+        isNaN(timeBetween) || timeBetween < 0.1 || timeBetween > 4 ||
+        isNaN(firstShotTime) || firstShotTime < 0.1 || firstShotTime > 4
+      ) {
+        errorDiv.textContent = "Invalid input! Ensure Number of Shots is 1–10, Time Between Shots is 0.1–4 sec, and First Shot Time is 0.1–4 sec.";
+        return;
+      }
+      
+      // Mark as running and disable the start button.
+      isRunning = true;
+      document.getElementById("startBtn").disabled = true;
+      
+      try {
+        // Wait for an initial random delay (2–4 sec).
+        const initialDelay = (Math.random() * 2 + 2) * 1000;
+        await sleep(initialDelay);
+        
+        // Play the first (distinct) beep.
+        playFirstBeep();
+        
+        // Wait for the defined time until the first shot.
+        await sleep(firstShotTime * 1000);
+        
+        // Loop to play the subsequent normal beeps.
+        for (let i = 0; i < shots; i++) {
+          await sleep(50); // small pause before each beep
+          playBeep();
+          await sleep((timeBetween - 0.05) * 1000);
+        }
+      } finally {
+        // Re-enable the start button and allow new sequences.
+        isRunning = false;
+        document.getElementById("startBtn").disabled = false;
+      }
+    }
+    
+    // Bind the click event to the start button.
+    document.getElementById("startBtn").addEventListener("click", startBeeps);
+    
+    // Bind the spacebar key (only if no sequence is running).
+    document.addEventListener("keydown", function(event) {
+      if (event.code === "Space" && !isRunning) {
+        event.preventDefault(); // Prevent default scrolling
+        startBeeps();
+      }
+    });
+    
+    // Bind the close button. (Note: window.close() may work only for windows opened via script.)
+    document.getElementById("closeBtn").addEventListener("click", function() {
+      window.close();
+    });
+  </script>
+</body>
+</html>
+
