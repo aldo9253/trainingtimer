@@ -36,7 +36,6 @@
 </head>
 <body>
   <h1>Training Beeps</h1>
-  <!-- <p>Configure your training timer:</p> -->
   
   <!-- Timer configuration -->
   <div class="slider-group">
@@ -230,6 +229,50 @@
     // Bind the close button. (Note: window.close() works only for windows opened via script.)
     document.getElementById("closeBtn").addEventListener("click", function() {
       window.close();
+    });
+    
+    // --- Local Storage Functions ---
+    
+    // List of all input element IDs whose values we want to persist.
+    const inputIds = [
+      "shots", "timeBetween", "firstShot", "reloads", "reloadTime",
+      "normalFrequency", "normalLength", "firstFrequency", "firstLength"
+    ];
+    
+    // Save a given input's value to localStorage.
+    function saveSetting(e) {
+      localStorage.setItem(e.target.id, e.target.value);
+    }
+    
+    // Load settings from localStorage and apply them to the inputs.
+    function loadSettings() {
+      inputIds.forEach(id => {
+        const element = document.getElementById(id);
+        const storedValue = localStorage.getItem(id);
+        if (storedValue !== null) {
+          element.value = storedValue;
+          // For range inputs, also update the adjacent display spans.
+          if (id === "normalFrequency") {
+            document.getElementById('normalFreqVal').textContent = storedValue;
+          } else if (id === "normalLength") {
+            document.getElementById('normalLengthVal').textContent = storedValue;
+          } else if (id === "firstFrequency") {
+            document.getElementById('firstFreqVal').textContent = storedValue;
+          } else if (id === "firstLength") {
+            document.getElementById('firstLengthVal').textContent = storedValue;
+          }
+        }
+      });
+    }
+    
+    // When the page loads, attach event listeners and load any saved settings.
+    document.addEventListener("DOMContentLoaded", function() {
+      loadSettings();
+      inputIds.forEach(id => {
+        const element = document.getElementById(id);
+        element.addEventListener("change", saveSetting);
+        element.addEventListener("input", saveSetting);
+      });
     });
   </script>
 </body>
