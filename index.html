@@ -153,7 +153,7 @@
     // Play the main beep sequence (the series of shots).
     async function playMainSequence(shots, timeBetween) {
       for (let i = 0; i < shots; i++) {
-        await sleep(50); // small pause before each beep
+        await sleep(5); // small pause before each beep
         playBeep();
         await sleep((timeBetween - 0.05) * 1000);
       }
