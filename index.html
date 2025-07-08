@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Training Beeps</title>
+  <title>Training Timer</title>
   <style>
     /* Global box-sizing for easier responsive layouts */
     *, *::before, *::after {
@@ -27,12 +27,12 @@
       flex: 1 0 120px;
       margin-bottom: 5px;
     }
-    input[type="number"]{
+    input[type="number"] {
       margin: 5px;
       width: 50px;
-	}
+    }
     input[type="range"] {
-      flex: 1 1 auto;
+      flex: 2 1 150px;
       max-width: 100%;
       margin-bottom: 5px;
     }
@@ -56,14 +56,14 @@
       width: 100%;
       padding: 30px 10px;
       font-size: 1.1em;
-      margin: 20px 0;
+      margin: 20px 0 50px;
     }
     /* Ensure other elements don’t overflow */
     div, fieldset, input, label {
       max-width: 100%;
     }
     /* Small screen tweaks */
-    @media (max-width: 480px) {
+    @media (max-width: 359px) {
       .slider-group {
         flex-direction: column;
       }
@@ -78,41 +78,45 @@
   </style>
 </head>
 <body>
-  <h1>Training Beeps</h1>
-  
-  <!-- Timer configuration -->
+  <h1>Training Timer</h1>
+
   <div class="slider-group">
-    <label for="shots">Num Shots (1–10):</label>
+    <label for="shots">Num Shots&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(1–10):</label>
     <input type="number" id="shots" value="6" min="1" max="10">
   </div>
   <div class="slider-group">
-    <label for="timeBetween">Time btwn Shots (0.1–10s):</label>
+    <label for="timeBetween">Time btwn Shots&nbsp;(0.1–10s):</label>
     <input type="number" id="timeBetween" value="0.7" step="0.1" min="0.1" max="10">
   </div>
   <div class="slider-group">
-    <label for="firstShot">1st Shot Time (0.1–10s):</label>
+    <label for="firstShot">1st Shot Time&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(0.1–10s):</label>
     <input type="number" id="firstShot" value="1.7" step="0.1" min="0.1" max="10">
   </div>
   <div class="slider-group">
-    <label for="reloads">Num Reloads (0–10):</label>
+    <label for="reloads">Num Reloads&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(0–10):</label>
     <input type="number" id="reloads" value="0" min="0" max="10">
   </div>
   <div class="slider-group">
-    <label for="reloadTime">Reload Time (0.1–10s):</label>
+    <label for="reloadTime">Reload Time&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(0.1–10s):</label>
     <input type="number" id="reloadTime" value="2" step="0.1" min="0.1" max="10">
+  </div>
+  
+
+  <div>
+    <button id="startBtn">Shooter Ready! (Space)</button>
   </div>
   
   <!-- Beep tone settings for normal beeps -->
   <fieldset>
     <legend>Normal Beep Tone Settings</legend>
     <div class="slider-group">
-      <label for="normalFrequency">Normal Beep Frequency (Hz):</label>
+      <label for="normalFrequency">Frequency (Hz):</label>
       <input type="range" id="normalFrequency" min="200" max="2000" value="1000" step="10"
              oninput="document.getElementById('normalFreqVal').textContent = this.value">
       <span id="normalFreqVal">1000</span>
     </div>
     <div class="slider-group">
-      <label for="normalLength">Normal Beep Length (sec):</label>
+      <label for="normalLength">Length (sec):</label>
       <input type="range" id="normalLength" min="0.1" max="1.0" value="0.15" step="0.01"
              oninput="document.getElementById('normalLengthVal').textContent = this.value">
       <span id="normalLengthVal">0.15</span>
@@ -123,38 +127,27 @@
   <fieldset>
     <legend>First Beep Tone Settings</legend>
     <div class="slider-group">
-      <label for="firstFrequency">First Beep Frequency (Hz):</label>
+      <label for="firstFrequency">Frequency (Hz):</label>
       <input type="range" id="firstFrequency" min="200" max="2000" value="800" step="10"
              oninput="document.getElementById('firstFreqVal').textContent = this.value">
       <span id="firstFreqVal">800</span>
     </div>
     <div class="slider-group">
-      <label for="firstLength">First Beep Length (sec):</label>
+      <label for="firstLength">Length (sec):</label>
       <input type="range" id="firstLength" min="0.1" max="2.0" value="0.25" step="0.01"
              oninput="document.getElementById('firstLengthVal').textContent = this.value">
       <span id="firstLengthVal">0.25</span>
     </div>
   </fieldset>
   
-  <div>
-    <button id="startBtn">Shooter Ready! (Space)</button>
-  </div>
-  
   <div id="error" class="error"></div>
   
   <script>
-    // A helper function to sleep for a given number of milliseconds.
-    function sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
-    }
-    
-    // Create a single AudioContext for playing tones.
+    function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    
-    // Global flag to ensure one beep sequence at a time.
     let isRunning = false;
-    
-    // Play the normal beep tone using the slider values.
+
+    // Play beep functions
     function playBeep() {
       const freq = parseFloat(document.getElementById("normalFrequency").value);
       const length = parseFloat(document.getElementById("normalLength").value);
@@ -171,8 +164,8 @@
       gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
       oscillator.start();
       oscillator.stop(audioCtx.currentTime + length);
-    }
-    
+    } 
+
     // Play the first (distinct) beep tone using its own slider values.
     function playFirstBeep() {
       const freq = parseFloat(document.getElementById("firstFrequency").value);
@@ -191,7 +184,7 @@
       oscillator.start();
       oscillator.stop(audioCtx.currentTime + length);
     }
-    
+
     // Play the main beep sequence (the series of shots).
     async function playMainSequence(shots, timeBetween) {
       for (let i = 0; i < shots; i++) {
@@ -256,64 +249,33 @@
         document.getElementById("startBtn").disabled = false;
       }
     }
-    
-    // Bind the click event to the start button.
+
     document.getElementById("startBtn").addEventListener("click", startBeeps);
-    
-    // Bind the spacebar key (only if no sequence is running).
-    document.addEventListener("keydown", function(event) {
-      if (event.code === "Space" && !isRunning) {
-        event.preventDefault(); // Prevent default scrolling
-        startBeeps();
-      }
-    });
-    
-    // Bind the close button. (Note: window.close() works only for windows opened via script.)
-    document.getElementById("closeBtn").addEventListener("click", function() {
-      window.close();
-    });
-    
-    // --- Local Storage Functions ---
-    
-    // List of all input element IDs whose values we want to persist.
+    document.addEventListener("keydown", e => { if (e.code === "Space" && !isRunning) { e.preventDefault(); startBeeps(); } });
+
+    // --- Local storage persistence ---
     const inputIds = [
       "shots", "timeBetween", "firstShot", "reloads", "reloadTime",
       "normalFrequency", "normalLength", "firstFrequency", "firstLength"
     ];
-    
-    // Save a given input's value to localStorage.
-    function saveSetting(e) {
-      localStorage.setItem(e.target.id, e.target.value);
-    }
-    
-    // Load settings from localStorage and apply them to the inputs.
+    function saveSetting(e) { localStorage.setItem(e.target.id, e.target.value); }
     function loadSettings() {
       inputIds.forEach(id => {
-        const element = document.getElementById(id);
-        const storedValue = localStorage.getItem(id);
-        if (storedValue !== null) {
-          element.value = storedValue;
-          // For range inputs, also update the adjacent display spans.
-          if (id === "normalFrequency") {
-            document.getElementById('normalFreqVal').textContent = storedValue;
-          } else if (id === "normalLength") {
-            document.getElementById('normalLengthVal').textContent = storedValue;
-          } else if (id === "firstFrequency") {
-            document.getElementById('firstFreqVal').textContent = storedValue;
-          } else if (id === "firstLength") {
-            document.getElementById('firstLengthVal').textContent = storedValue;
-          }
+        const el = document.getElementById(id);
+        const val = localStorage.getItem(id);
+        if (val !== null) {
+          el.value = val;
+          const span = document.getElementById(id + (id.includes('Frequency') ? 'Val' : id.includes('Length') ? 'Val' : ''));
+          if (span) span.textContent = val;
         }
       });
     }
-    
-    // When the page loads, attach event listeners and load any saved settings.
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener("DOMContentLoaded", () => {
       loadSettings();
       inputIds.forEach(id => {
-        const element = document.getElementById(id);
-        element.addEventListener("change", saveSetting);
-        element.addEventListener("input", saveSetting);
+        const el = document.getElementById(id);
+        el.addEventListener("change", saveSetting);
+        el.addEventListener("input", saveSetting);
       });
     });
   </script>
