@@ -210,11 +210,11 @@
       const reloadTime = parseFloat(document.getElementById('reloadTime').value);
       
       if (
-        isNaN(shots) || shots < 1 || shots > 10 ||
-        isNaN(timeBetween) || timeBetween < 0.1 || timeBetween > 2 ||
-        isNaN(firstShotTime) || firstShotTime < 0.1 || firstShotTime > 3 ||
-        isNaN(reloads) || reloads < 0 || reloads > 8 ||
-        isNaN(reloadTime) || reloadTime < 0.5 || reloadTime > 4
+        isNaN(shots)         || shots         < 1   || shots         > 10 ||
+        isNaN(timeBetween)   || timeBetween   < 0.1 || timeBetween   > 10 ||
+        isNaN(firstShotTime) || firstShotTime < 0.1 || firstShotTime > 10 ||
+        isNaN(reloads)       || reloads       < 0   || reloads       > 10 ||
+        isNaN(reloadTime)    || reloadTime    < 0.1 || reloadTime    > 10
       ) {
         errorDiv.textContent = "Invalid input! Please check that all values are within their specified ranges.";
         return;
@@ -259,14 +259,27 @@
       "normalFrequency", "normalLength", "firstFrequency", "firstLength"
     ];
     function saveSetting(e) { localStorage.setItem(e.target.id, e.target.value); }
-    function loadSettings() {
-      inputIds.forEach(id => {
-        const el = document.getElementById(id);
-        const val = localStorage.getItem(id);
-        if (val !== null) {
-          el.value = val;
-          const span = document.getElementById(id + (id.includes('Frequency') ? 'Val' : id.includes('Length') ? 'Val' : ''));
-          if (span) span.textContent = val;
+    //function loadSettings() {
+      //inputIds.forEach(id => {
+        //const el = document.getElementById(id);
+        //const val = localStorage.getItem(id);
+        //if (val !== null) {
+          //el.value = val;
+          //const span = document.getElementById(id + (id.includes('Frequency') ? 'Val' : id.includes('Length') ? 'Val' : ''));
+          //if (span) span.textContent = val;
+        //}
+      //});
+    //}
+    function loadSettings(){
+      inputIds.forEach(id=>{
+        const el=document.getElementById(id);
+        const val=localStorage.getItem(id);
+        if(val!==null){
+          el.value=val;
+          if(id==='normalFrequency') document.getElementById('normalFreqVal').textContent=val;
+          else if(id==='normalLength') document.getElementById('normalLengthVal').textContent=val;
+          else if(id==='firstFrequency') document.getElementById('firstFreqVal').textContent=val;
+          else if(id==='firstLength') document.getElementById('firstLengthVal').textContent=val;
         }
       });
     }
