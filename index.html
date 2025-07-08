@@ -27,8 +27,12 @@
       flex: 1 0 120px;
       margin-bottom: 5px;
     }
-    input[type="number"], input[type="range"] {
-      flex: 2 1 150px;
+    input[type="number"]{
+      margin: 5px;
+      width: 50px;
+	}
+    input[type="range"] {
+      flex: 1 1 auto;
       max-width: 100%;
       margin-bottom: 5px;
     }
@@ -50,7 +54,7 @@
     #startBtn {
       display: block;
       width: 100%;
-      padding: 15px 10px;
+      padding: 30px 10px;
       font-size: 1.1em;
       margin: 20px 0;
     }
@@ -78,23 +82,23 @@
   
   <!-- Timer configuration -->
   <div class="slider-group">
-    <label for="shots">Number of Shots (1–10):</label>
+    <label for="shots">Num Shots (1–10):</label>
     <input type="number" id="shots" value="6" min="1" max="10">
   </div>
   <div class="slider-group">
-    <label for="timeBetween">Time Between Shots (0.1–10 sec):</label>
+    <label for="timeBetween">Time btwn Shots (0.1–10s):</label>
     <input type="number" id="timeBetween" value="0.7" step="0.1" min="0.1" max="10">
   </div>
   <div class="slider-group">
-    <label for="firstShot">First Shot Time (0.1–10 sec):</label>
+    <label for="firstShot">1st Shot Time (0.1–10s):</label>
     <input type="number" id="firstShot" value="1.7" step="0.1" min="0.1" max="10">
   </div>
   <div class="slider-group">
-    <label for="reloads">Number of Reloads (0–10):</label>
+    <label for="reloads">Num Reloads (0–10):</label>
     <input type="number" id="reloads" value="0" min="0" max="10">
   </div>
   <div class="slider-group">
-    <label for="reloadTime">Reload Time (0.1–10 sec):</label>
+    <label for="reloadTime">Reload Time (0.1–10s):</label>
     <input type="number" id="reloadTime" value="2" step="0.1" min="0.1" max="10">
   </div>
   
@@ -150,10 +154,169 @@
     // Global flag to ensure one beep sequence at a time.
     let isRunning = false;
     
-    // Play functions and main sequence omitted for brevity — unchanged.
-    async function startBeeps() { /* ... */ }
+    // Play the normal beep tone using the slider values.
+    function playBeep() {
+      const freq = parseFloat(document.getElementById("normalFrequency").value);
+      const length = parseFloat(document.getElementById("normalLength").value);
+      
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      oscillator.frequency.value = freq;
+      oscillator.type = "sine";
+      
+      gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + length);
+    }
+    
+    // Play the first (distinct) beep tone using its own slider values.
+    function playFirstBeep() {
+      const freq = parseFloat(document.getElementById("firstFrequency").value);
+      const length = parseFloat(document.getElementById("firstLength").value);
+      
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      oscillator.frequency.value = freq;
+      oscillator.type = "sine";
+      
+      gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + length);
+    }
+    
+    // Play the main beep sequence (the series of shots).
+    async function playMainSequence(shots, timeBetween) {
+      for (let i = 0; i < shots; i++) {
+        await sleep(50); // small pause before each beep
+        playBeep();
+        await sleep((timeBetween - 0.05) * 1000);
+      }
+    }
+    
+    // The main function that sequences the beep sounds.
+    async function startBeeps() {
+      const errorDiv = document.getElementById('error');
+      errorDiv.textContent = "";
+      
+      // Prevent starting if a sequence is already running.
+      if (isRunning) return;
+      
+      // Retrieve and validate input values.
+      const shots = parseInt(document.getElementById('shots').value);
+      const timeBetween = parseFloat(document.getElementById('timeBetween').value);
+      const firstShotTime = parseFloat(document.getElementById('firstShot').value);
+      const reloads = parseInt(document.getElementById('reloads').value);
+      const reloadTime = parseFloat(document.getElementById('reloadTime').value);
+      
+      if (
+        isNaN(shots) || shots < 1 || shots > 10 ||
+        isNaN(timeBetween) || timeBetween < 0.1 || timeBetween > 2 ||
+        isNaN(firstShotTime) || firstShotTime < 0.1 || firstShotTime > 3 ||
+        isNaN(reloads) || reloads < 0 || reloads > 8 ||
+        isNaN(reloadTime) || reloadTime < 0.5 || reloadTime > 4
+      ) {
+        errorDiv.textContent = "Invalid input! Please check that all values are within their specified ranges.";
+        return;
+      }
+      
+      // Mark as running and disable the start button.
+      isRunning = true;
+      document.getElementById("startBtn").disabled = true;
+      
+      try {
+        // Wait for an initial random delay (2–4 sec).
+        const initialDelay = (Math.random() * 2 + 2) * 1000;
+        await sleep(initialDelay);
+        
+        // Play the first (distinct) beep.
+        playFirstBeep();
+        
+        // Wait for the defined first shot time.
+        await sleep(firstShotTime * 1000);
+        
+        // Play the main beep sequence.
+        await playMainSequence(shots, timeBetween);
+        
+        // For each reload, wait the reload time and then replay the main beep sequence.
+        for (let r = 0; r < reloads; r++) {
+          await sleep(reloadTime * 1000);
+          await playMainSequence(shots, timeBetween);
+        }
+      } finally {
+        // Re-enable the start button and allow new sequences.
+        isRunning = false;
+        document.getElementById("startBtn").disabled = false;
+      }
+    }
+    
+    // Bind the click event to the start button.
     document.getElementById("startBtn").addEventListener("click", startBeeps);
-    document.addEventListener("keydown", e => { if (e.code === "Space" && !isRunning) { e.preventDefault(); startBeeps(); } });
+    
+    // Bind the spacebar key (only if no sequence is running).
+    document.addEventListener("keydown", function(event) {
+      if (event.code === "Space" && !isRunning) {
+        event.preventDefault(); // Prevent default scrolling
+        startBeeps();
+      }
+    });
+    
+    // Bind the close button. (Note: window.close() works only for windows opened via script.)
+    document.getElementById("closeBtn").addEventListener("click", function() {
+      window.close();
+    });
+    
+    // --- Local Storage Functions ---
+    
+    // List of all input element IDs whose values we want to persist.
+    const inputIds = [
+      "shots", "timeBetween", "firstShot", "reloads", "reloadTime",
+      "normalFrequency", "normalLength", "firstFrequency", "firstLength"
+    ];
+    
+    // Save a given input's value to localStorage.
+    function saveSetting(e) {
+      localStorage.setItem(e.target.id, e.target.value);
+    }
+    
+    // Load settings from localStorage and apply them to the inputs.
+    function loadSettings() {
+      inputIds.forEach(id => {
+        const element = document.getElementById(id);
+        const storedValue = localStorage.getItem(id);
+        if (storedValue !== null) {
+          element.value = storedValue;
+          // For range inputs, also update the adjacent display spans.
+          if (id === "normalFrequency") {
+            document.getElementById('normalFreqVal').textContent = storedValue;
+          } else if (id === "normalLength") {
+            document.getElementById('normalLengthVal').textContent = storedValue;
+          } else if (id === "firstFrequency") {
+            document.getElementById('firstFreqVal').textContent = storedValue;
+          } else if (id === "firstLength") {
+            document.getElementById('firstLengthVal').textContent = storedValue;
+          }
+        }
+      });
+    }
+    
+    // When the page loads, attach event listeners and load any saved settings.
+    document.addEventListener("DOMContentLoaded", function() {
+      loadSettings();
+      inputIds.forEach(id => {
+        const element = document.getElementById(id);
+        element.addEventListener("change", saveSetting);
+        element.addEventListener("input", saveSetting);
+      });
+    });
   </script>
 </body>
 </html>
+
